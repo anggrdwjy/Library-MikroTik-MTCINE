@@ -280,8 +280,6 @@ add name=to-R1 templates=bgp-65001 remote.address=10.0.0.1 remote.as=65001 \
 | Trafik hanya melalui satu ISP | Local-Pref / prepend tidak sesuai | Periksa filter, periksa bgp-local-pref pada route print |
 | Loop / transit tidak disengaja | Filter outbound terlalu longgar | Perketat filter, hanya prefix milik perusahaan |
 
----
-
 ## 2. Modul 2 - MPLS
 
 MPLS membuat forwarding menjadi lebih cepat dan memungkinkan VPN yang terisolasi di atas infrastruktur yang sama. Pada modul ini, pembahasan dimulai dari dasar label hingga pembangunan VPLS (VPN Layer 2) dan L3VPN (VPN Layer 3) sebagaimana yang digunakan oleh ISP.
@@ -603,8 +601,6 @@ add name=to-PE2-vpn templates=bgp-vpn remote.address=10.0.0.2 remote.as=65000
 - **Audit MTU:** Setiap penambahan tautan baru, MTU dipastikan telah 1600. Satu tautan dengan MTU yang kecil dapat merusak seluruh VPLS.
 - **Pencadangan:** Konfigurasi MPLS dan VRF diekspor. VPLS dan VRF sangat sensitif terhadap kesalahan penulisan ID.
 
----
-
 ## 3. Modul 3 - Traffic Engineering
 
 Traffic Engineering (TE) menjawab permasalahan klasik: tautan utama penuh, sedangkan tautan cadangan kosong. Tanpa TE, routing selalu memilih jalur terpendek sehingga tautan utama mengalami overload. Dengan TE, sebagian trafik dapat dipaksa melewati jalur lain yang lebih lengang.
@@ -820,8 +816,6 @@ add dst-address=0.0.0.0/0 gateway=te-PE1-to-PE2 routing-mark=via-TE
 | RSVP session gagal | RSVP tidak aktif pada salah satu hop | Aktifkan RSVP pada seluruh router pada jalur |
 | Utilisasi tidak berubah | Trafik yang di-steer tidak sesuai / mangle tidak sesuai | Periksa mangle counter, periksa /ip firewall mangle print stats |
 
----
-
 ## 4. Lampiran A - Matriks Penanganan Masalah dan Perintah Cepat
 
 | Domain | Perintah Pemeriksaan Cepat | Hal yang Dicari |
@@ -838,8 +832,6 @@ add dst-address=0.0.0.0/0 gateway=te-PE1-to-PE2 routing-mark=via-TE
 | Interface | `/interface print where running` | MTU, error, drop |
 
 **Prinsip penanganan masalah:** Pemeriksaan selalu dilakukan dari bawah ke atas — Fisik (tautan aktif?) — IGP (OSPF Full?) — LDP (neighbor?) — BGP / VPN (session?) — Layanan (VPLS / TE aktif?) — Trafik (mangle / route?). Pemeriksaan tidak dilakukan dengan melompat langsung ke BGP apabila OSPF belum Full.
-
----
 
 ## 5. Lampiran B - Templat Pencadangan, Rollback, dan Permintaan Perubahan
 
@@ -870,7 +862,3 @@ add dst-address=0.0.0.0/0 gateway=te-PE1-to-PE2 routing-mark=via-TE
 - **Verifikasi:** Tunnel Up, traceroute melalui P2, utilisasi tautan utama menurun.
 - **Rollback:** Route steering dihapus, tunnel tetap tersedia tetapi tidak digunakan. Apabila diperlukan, tunnel dihapus.
 - **Risiko:** Apabila RSVP gagal, trafik kembali ke jalur utama, tidak terjadi downtime total.
-
----
-
-Panduan ini dirancang untuk digunakan berdampingan dengan laboratorium MTCINE. Proses dimulai dari Modul 1, BGP dipastikan stabil, kemudian dilanjutkan ke MPLS, dan terakhir Traffic Engineering. Apabila terdapat kendala pada satu tahap, tahap berikutnya tidak dilanjutkan sebelum verifikasi pada tahap tersebut menunjukkan hasil yang seluruhnya baik.
