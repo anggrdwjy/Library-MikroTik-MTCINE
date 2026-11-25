@@ -2,11 +2,11 @@
 
 ## Daftar Isi
 
-- [1. Modul 1 - BGP](#1-modul-1---bgp)
-- [2. Modul 2 - MPLS](#2-modul-2---mpls)
-- [3. Modul 3 - Traffic Engineering](#3-modul-3---traffic-engineering)
-- [4. Lampiran A - Matriks Penanganan Masalah dan Perintah Cepat](#4-lampiran-a---matriks-penanganan-masalah-dan-perintah-cepat)
-- [5. Lampiran B - Templat Pencadangan (Backup), Rollback (Pengembalian), dan Permintaan Perubahan](#5-lampiran-b---templat-pencadangan-rollback-dan-permintaan-perubahan)
+[Modul 1 - BGP](#1-modul-1---bgp)
+[Modul 2 - MPLS](#2-modul-2---mpls)
+[Modul 3 - Traffic Engineering](#3-modul-3---traffic-engineering)
+[Lampiran A - Matriks Penanganan Masalah dan Perintah Cepat](#4-lampiran-a---matriks-penanganan-masalah-dan-perintah-cepat)
+[Lampiran B - Templat Pencadangan (Backup), Rollback (Pengembalian), dan Permintaan Perubahan](#5-lampiran-b---templat-pencadangan-rollback-dan-permintaan-perubahan)
 
 
 ## 1. Modul 1 - BGP
