@@ -1,14 +1,5 @@
 # Panduan Implementasi dan Operasi MTCINE
 
-## Daftar Isi
-
-1. [Modul 1 - BGP](#1-modul-1---bgp)
-2. [Modul 2 - MPLS](#2-modul-2---mpls)
-3. [Modul 3 - Traffic Engineering](#3-modul-3---traffic-engineering)
-4. [Lampiran A - Matriks Penanganan Masalah dan Perintah Cepat](#4-lampiran-a---matriks-penanganan-masalah-dan-perintah-cepat)
-5. [Lampiran B - Templat Pencadangan (Backup), Rollback (Pengembalian), dan Permintaan Perubahan](#5-lampiran-b---templat-pencadangan-rollback-dan-permintaan-perubahan)
-
-
 ## 1. Modul 1 - BGP
 
 Border Gateway Protocol (BGP) merupakan protokol yang menghubungkan Autonomous System (AS). Pada modul ini, pembahasan tidak hanya mencakup cara kerja BGP, tetapi juga cara mengendalikannya agar jaringan tetap stabil, aman, dan tidak menjadi transit yang tidak dikehendaki.
