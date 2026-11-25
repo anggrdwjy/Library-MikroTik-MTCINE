@@ -1,7 +1,5 @@
 # MTCINE - Panduan Implementasi dan Operasi
 
-**BGP • MPLS • Traffic Engineering**
-
 ## 1. Modul 1 - BGP
 
 BGP merupakan protokol yang menghubungkan Autonomous System. Pada modul ini, pembahasan tidak hanya mencakup cara kerja BGP, tetapi juga cara mengendalikannya agar jaringan tetap stabil, aman, dan tidak menjadi transit yang tidak dikehendaki.
