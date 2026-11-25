@@ -1,14 +1,23 @@
-# MTCINE - Panduan Implementasi dan Operasi
+# Panduan Implementasi dan Operasi MTCINE
+
+## Daftar Isi
+
+- [1. Modul 1 - BGP](#1-modul-1---bgp)
+- [2. Modul 2 - MPLS](#2-modul-2---mpls)
+- [3. Modul 3 - Traffic Engineering](#3-modul-3---traffic-engineering)
+- [4. Lampiran A - Matriks Penanganan Masalah dan Perintah Cepat](#4-lampiran-a---matriks-penanganan-masalah-dan-perintah-cepat)
+- [5. Lampiran B - Templat Pencadangan (Backup), Rollback (Pengembalian), dan Permintaan Perubahan](#5-lampiran-b---templat-pencadangan-rollback-dan-permintaan-perubahan)
+
 
 ## 1. Modul 1 - BGP
 
-BGP merupakan protokol yang menghubungkan Autonomous System. Pada modul ini, pembahasan tidak hanya mencakup cara kerja BGP, tetapi juga cara mengendalikannya agar jaringan tetap stabil, aman, dan tidak menjadi transit yang tidak dikehendaki.
+Border Gateway Protocol (BGP) merupakan protokol yang menghubungkan Autonomous System (AS). Pada modul ini, pembahasan tidak hanya mencakup cara kerja BGP, tetapi juga cara mengendalikannya agar jaringan tetap stabil, aman, dan tidak menjadi transit yang tidak dikehendaki.
 
-### 1.1 Studi Kasus — Perusahaan Dual-Homed ke Dua ISP
+### 1.1 Studi Kasus — Perusahaan Dual-Homed (Terhubung ke Dua ISP)
 
-**Skenario:** PT Nusantara Retail (AS 65001) memiliki dua kantor pusat di Surabaya dan Jakarta yang terhubung ke dua ISP yang berbeda agar koneksi internet tetap tersedia apabila salah satu ISP mengalami gangguan. Perusahaan tersebut memiliki dua prefix, yaitu `203.0.113.0/24` untuk layanan publik dan `198.51.100.0/24` untuk layanan internal. Di dalam AS 65001 terdapat tiga router, yaitu R1 menuju ISP-A, R2 menuju ISP-B, dan R3 sebagai core sekaligus Route Reflector. Tujuan yang hendak dicapai adalah trafik internet keluar melalui ISP-A sebagai jalur utama dan ISP-B sebagai jalur cadangan, sedangkan trafik masuk dapat diatur. Sesi iBGP harus stabil tanpa menggunakan full-mesh.
+**Skenario:** PT Nusantara Retail (AS 65001) memiliki dua kantor pusat di Surabaya dan Jakarta yang terhubung ke dua ISP yang berbeda agar koneksi internet tetap tersedia apabila salah satu ISP mengalami gangguan. Perusahaan tersebut memiliki dua prefix, yaitu `203.0.113.0/24` untuk layanan publik dan `198.51.100.0/24` untuk layanan internal. Di dalam AS 65001 terdapat tiga router, yaitu R1 menuju ISP-A, R2 menuju ISP-B, dan R3 sebagai core sekaligus Route Reflector (RR). Tujuan yang hendak dicapai adalah trafik internet keluar melalui ISP-A sebagai jalur utama dan ISP-B sebagai jalur cadangan, sedangkan trafik masuk dapat diatur. Sesi iBGP harus stabil tanpa menggunakan full-mesh.
 
-**Permasalahan yang umum terjadi tanpa desain tersebut:** Apabila R1 dan R2 tidak saling mempertukarkan rute iBGP secara benar, trafik dari Jakarta dapat keluar melalui jalur yang tidak optimal, atau prefix perusahaan tidak ter-advertise ke salah satu ISP sehingga sebagian pengguna tidak dapat dijangkau.
+**Permasalahan yang umum terjadi tanpa desain tersebut:** Apabila R1 dan R2 tidak saling mempertukarkan rute iBGP secara benar, trafik dari Jakarta dapat keluar melalui jalur yang tidak optimal, atau prefix perusahaan tidak diumumkan ke salah satu ISP sehingga sebagian pengguna tidak dapat dijangkau.
 
 #### Topologi Modul 1
 
@@ -31,7 +40,7 @@ R1 (10.0.0.1) melakukan eBGP ke ISP-A (AS 65002, 192.168.12.2) melalui ether1 19
 
 #### Tahap 1 — Konektivitas Dasar dan Loopback
 
-Pastikan antarrouter internal dapat melakukan ping ke loopback satu sama lain. Pada laboratorium kecil, OSPF atau static route dapat digunakan untuk reachability loopback. Pada jaringan produksi, OSPF merupakan IGP yang umum digunakan.
+Wajib dipastikan bahwa antarrouter internal dapat melakukan ping ke loopback satu sama lain. Pada laboratorium kecil, OSPF atau static route dapat digunakan untuk keterjangkauan (reachability) loopback. Pada jaringan produksi, Open Shortest Path First (OSPF) merupakan Interior Gateway Protocol (IGP) yang umum digunakan.
 
 ```routeros
 /ip address
@@ -87,7 +96,7 @@ add name=to-ISP-B templates=bgp-65001 \
 
 #### Tahap 3 — Filter: Pencegahan Transit yang Tidak Dikehendaki
 
-Tahap ini merupakan tahap yang paling penting. Tanpa filter, router dapat meng-advertise rute dari ISP-A ke ISP-B sehingga trafik pihak lain melewati jaringan perusahaan. Filter outbound hanya diperkenankan mengirimkan prefix milik perusahaan. Filter inbound menolak bogon, default yang tidak dikehendaki, dan prefix milik perusahaan yang kembali (antispoof).
+Tahap ini merupakan tahap yang paling penting. Tanpa filter, router dapat mengumumkan (advertise) rute dari ISP-A ke ISP-B sehingga trafik pihak lain melewati jaringan perusahaan. Filter outbound hanya diperkenankan mengirimkan prefix milik perusahaan. Filter inbound menolak bogon, default yang tidak dikehendaki, dan prefix milik perusahaan yang kembali (antispoof).
 
 ```routeros
 # Filter OUT: hanya prefix milik perusahaan yang diperkenankan keluar
@@ -102,7 +111,7 @@ add chain=from-ISP-A-in rule="if (dst in 10.0.0.0/8) { reject; }"
 add chain=from-ISP-A-in rule="if (dst in 203.0.113.0/24) { reject; }"
 add chain=from-ISP-A-in rule="accept;"
 
-# Berlaku sama untuk ISP-B, dengan penyesuaian nama chain
+# Berlaku pula untuk ISP-B, dengan penyesuaian nama chain
 /routing filter rule
 add chain=to-ISP-B-out rule="if (dst in 203.0.113.0/24) { accept; }"
 add chain=to-ISP-B-out rule="if (dst in 198.51.100.0/24) { accept; }"
@@ -111,7 +120,7 @@ add chain=to-ISP-B-out rule="reject;"
 
 #### Tahap 4 — iBGP dan Route Reflector (R3)
 
-Tanpa Route Reflector, R1, R2, dan R3 harus menggunakan full-mesh iBGP. Dengan RR pada R3, R1 dan R2 cukup melakukan peering ke R3, kemudian R3 memantulkan rute tersebut. Cara tersebut mengurangi jumlah sesi dan lebih mudah ditingkatkan skalanya.
+Tanpa Route Reflector, R1, R2, dan R3 harus menggunakan full-mesh (mesh penuh) iBGP. Dengan RR pada R3, R1 dan R2 cukup melakukan peering ke R3, kemudian R3 memantulkan rute tersebut. Cara tersebut mengurangi jumlah sesi dan lebih mudah ditingkatkan skalanya.
 
 ```routeros
 # --- Di R3 (Route Reflector) ---
@@ -133,7 +142,7 @@ add name=to-RR templates=bgp-65001 remote.address=10.0.0.3 \
 # Loopback digunakan agar sesi tidak terputus apabila satu tautan terputus
 ```
 
-#### Tahap 5 — Pengaturan Best Path: Local-Pref, MED, dan AS Path Prepend
+#### Tahap 5 — Pengaturan Best Path: Local Preference (Local-Pref), Multi-Exit Discriminator (MED), dan AS Path Prepend
 
 BGP tidak memilih rute hanya berdasarkan hop terpendek. Pengelola jaringan dapat mengendalikan trafik keluar dan trafik masuk. **Local-Pref** mengendalikan trafik keluar (nilai yang lebih besar lebih diutamakan dan hanya berlaku di dalam AS). **AS Path Prepend** mengendalikan trafik masuk (prepend membuat jalur tampak lebih panjang sehingga ISP lain cenderung tidak memilihnya).
 
@@ -157,13 +166,13 @@ add chain=to-ISP-B-out rule="if (dst in 198.51.100.0/24) { set bgp-as-path 65001
 # Pada connection: output.remove-private-as=yes
 ```
 
-#### Tahap 6 — Stub, Non-Stub, Multihop, dan Loopback
+#### Tahap 6 — Stub, Non-Stub, Multihop (Multi-Hop), dan Loopback
 
-- **Stub:** Hanya memiliki satu jalur keluar. Cukup menerima default route dari ISP, tidak menerima full table, dan hanya meng-advertise prefix milik perusahaan.
+- **Stub (Ujung):** Hanya memiliki satu jalur keluar (egress). Hanya perlu menerima default route dari ISP, tidak menerima full table (tabel rute lengkap), dan hanya mengumumkan (advertise) prefix milik perusahaan.
 - **Non-Stub:** Sebagaimana studi kasus ini, memiliki dua ISP, harus menerima rute dari kedua ISP dan mengatur Local-Pref.
-- **Multihop dan Loopback:** Untuk iBGP dan eBGP yang tidak terhubung secara langsung (misalnya peer melalui firewall atau loopback), multihop ditetapkan dan loopback dipastikan dapat dijangkau melalui IGP. Apabila loopback tidak dapat dijangkau, sesi iBGP akan mengalami flapping.
+- **Multihop dan Loopback:** Untuk iBGP dan eBGP yang tidak terhubung secara langsung (misalnya peer melalui firewall atau loopback), multihop ditetapkan dan loopback wajib dapat dijangkau melalui IGP. Apabila loopback tidak dapat dijangkau, sesi iBGP akan mengalami flapping.
 
-> **Catatan v6:** Pada RouterOS v6, perintah yang digunakan adalah `/routing bgp peer add remote-address=... remote-as=... in-filter=... out-filter=... route-reflect=yes`. Konsep filter dan Local-Pref adalah sama, hanya sintaks yang berbeda.
+> **Catatan untuk RouterOS v6:** Pada RouterOS v6, perintah yang digunakan adalah `/routing bgp peer add remote-address=... remote-as=... in-filter=... out-filter=... route-reflect=yes`. Konsep filter dan Local-Pref adalah sama, hanya sintaks yang berbeda.
 
 ### 1.3 Perbandingan RouterOS v6 dan v7 — BGP
 
@@ -173,14 +182,14 @@ Contoh konfigurasi pada Tahap 1 hingga Tahap 6 menggunakan RouterOS v7. Pada sub
 
 | Aspek | RouterOS v6 | RouterOS v7 | Catatan |
 |---|---|---|---|
-| Struktur konfigurasi BGP | Instance + Peer | Template + Connection | Pada v7, template dipisahkan dari connection agar dapat digunakan kembali |
+| Struktur konfigurasi BGP | Instance + Peer | Template + Connection | Pada RouterOS v7, template dipisahkan dari connection agar dapat digunakan kembali |
 | Menu utama BGP | `/routing bgp peer`, `/routing bgp instance` | `/routing bgp template`, `/routing bgp connection` | Nama menu berbeda, prinsip peering sama |
-| Advertise prefix | `/routing bgp network` | `/routing bgp network` | Pada v7, network terikat pada template melalui `output.network` |
-| Filter | `/routing filter` | `/routing filter rule` | Pada v7, filter ditulis sebagai `rule` |
-| Route Reflector | `route-reflect=yes` pada peer | `route-reflector=yes` pada connection | Fungsi sama, penamaan berbeda |
-| Address Family | `address-families` pada peer (terbatas) | `address-families=ip, vpnv4, l2vpn` pada template | Pada v7, address family dinyatakan secara eksplisit |
+| Advertise prefix | `/routing bgp network` | `/routing bgp network` | Pada RouterOS v7, network terikat pada template melalui `output.network` |
+| Filter | `/routing filter` | `/routing filter rule` | Pada RouterOS v7, filter ditulis sebagai `rule` |
+| Route Reflector | `route-reflect=yes` pada peer | `route-reflector=yes` pada connection | Fungsi tersebut identik, penamaan berbeda |
+| Address Family | `address-families` pada peer (terbatas) | `address-families=ip, vpnv4, l2vpn` pada template | Pada RouterOS v7, address family dinyatakan secara eksplisit |
 | Private AS Removal | `remove-private-as=yes` pada peer | `output.remove-private-as=yes` pada connection | Berlaku pada saat advertise ke eBGP |
-| Pemeriksaan status | `/routing bgp peer print status` | `/routing bgp peer print status` | Perintah pemeriksaan relatif sama |
+| Pemeriksaan status | `/routing bgp peer print status` | `/routing bgp peer print status` | Perintah pemeriksaan hampir identik |
 | Pemeriksaan rute | `/routing bgp route print` | `/routing bgp route print` | Output v7 lebih rinci pada kolom Local-Pref dan AS Path |
 
 #### Konfigurasi RouterOS v6 — Setara dengan Tahap 2 hingga Tahap 4
@@ -241,9 +250,9 @@ add name=to-R1 templates=bgp-65001 remote.address=10.0.0.1 remote.as=65001 \
 
 #### Panduan Pemilihan Versi
 
-- Apabila jaringan masih menggunakan RouterOS v6, gunakan konfigurasi v6 di atas. Perintah `instance` dan `peer` tidak tersedia pada v7.
-- Apabila jaringan menggunakan RouterOS v7, gunakan konfigurasi v7. Konfigurasi v7 tidak dapat disalin ke v6 tanpa penyesuaian.
-- Filter dan prinsip Local-Pref, MED, dan AS Path Prepend berlaku sama pada kedua versi. Perbedaan hanya terdapat pada sintaks dan nama menu.
+- Apabila jaringan masih menggunakan RouterOS v6, konfigurasi v6 tersebut dapat digunakan. Perintah `instance` dan `peer` tidak tersedia pada RouterOS v7.
+- Apabila jaringan menggunakan RouterOS v7, konfigurasi v7 dapat digunakan. Konfigurasi RouterOS v7 tidak dapat disalin ke RouterOS v6 tanpa penyesuaian.
+- Filter dan prinsip Local-Pref, MED, dan AS Path Prepend berlaku identik pada kedua versi. Perbedaan hanya terdapat pada sintaks dan nama menu.
 
 ### 1.4 Verifikasi BGP
 
@@ -257,14 +266,14 @@ add name=to-R1 templates=bgp-65001 remote.address=10.0.0.1 remote.as=65001 \
 /routing bgp route print detail where dst=0.0.0.0/0
 ```
 
-- **Sesi Established?** Apabila status berhenti pada Active / Connect, periksa alamat IP, nomor AS, firewall TCP 179, dan reachability.
-- **Rute diterima tetapi tidak aktif?** Periksa apakah next-hop dapat dijangkau melalui IGP. BGP tidak akan menginstal rute apabila next-hop tidak terdapat pada tabel routing.
-- **Prefix tidak ter-advertise?** Periksa `/routing bgp network` dan filter outbound. Pastikan prefix terdapat pada IP route (atau synchronize=no pada laboratorium).
+- **Sesi Established?** Apabila status berhenti pada Active / Connect (tahap pembentukan sesi), periksa alamat IP, nomor AS, firewall TCP 179, dan keterjangkauan (reachability).
+- **Rute diterima tetapi tidak aktif?** Perlu diperiksa apakah next-hop dapat dijangkau melalui IGP. BGP tidak akan menginstal rute apabila next-hop tidak terdapat pada tabel routing.
+- **Prefix tidak diumumkan?** Perlu diperiksa `/routing bgp network` dan filter outbound. Perlu dipastikan bahwa prefix terdapat pada IP route (atau synchronize=no pada laboratorium).
 
 ### 1.5 Operasi BGP — Prosedur Operasional
 
 - **Pemantauan:** Peringatan (alert) dikirimkan apabila sesi BGP terputus lebih dari 2 menit, jumlah prefix yang diterima menurun secara drastis, atau terdapat prefix baru yang tidak dikenal. Pemantauan dapat menggunakan `/tool e-mail` atau `/system script` yang terintegrasi dengan The Dude, Zabbix, atau Grafana.
-- **Perubahan:** Setiap perubahan filter atau Local-Pref dilaksanakan pada jendela pemeliharaan, dengan rollback yang telah disiapkan: ekspor konfigurasi disimpan sebelum perubahan dan perintah untuk mengembalikan filter lama telah disiapkan.
+- **Perubahan:** Setiap perubahan filter atau Local-Pref dilaksanakan pada jendela pemeliharaan, dengan rollback (pengembalian) yang telah disiapkan: ekspor konfigurasi disimpan sebelum perubahan dan perintah untuk mengembalikan filter lama telah disiapkan.
 - **Pencadangan:** Konfigurasi BGP diekspor setiap minggu dengan perintah `/export file=bgp-backup` dan disimpan di luar router.
 - **Audit:** Setiap bulan, dilakukan pemeriksaan apakah terdapat prefix bogon yang lolos, apakah community masih sesuai dengan dokumentasi, dan apakah RR masih menjadi single point of failure (RR kedua perlu disiapkan).
 
@@ -280,13 +289,13 @@ add name=to-R1 templates=bgp-65001 remote.address=10.0.0.1 remote.as=65001 \
 
 ## 2. Modul 2 - MPLS
 
-MPLS membuat forwarding menjadi lebih cepat dan memungkinkan VPN yang terisolasi di atas infrastruktur yang sama. Pada modul ini, pembahasan dimulai dari dasar label hingga pembangunan VPLS (VPN Layer 2) dan L3VPN (VPN Layer 3) sebagaimana yang digunakan oleh ISP.
+Multiprotocol Label Switching (MPLS) membuat forwarding menjadi lebih cepat dan memungkinkan VPN yang terisolasi pada infrastruktur yang sama. Pada modul ini, pembahasan dimulai dari dasar label hingga pembangunan Virtual Private LAN Service (VPLS) atau VPN Layer 2 dan L3VPN atau VPN Layer 3 sebagaimana yang digunakan oleh ISP.
 
 ### 2.1 Studi Kasus — ISP Membangun Backbone MPLS untuk Dua Pelanggan
 
-**Skenario:** ISP Nusantara Net memiliki backbone yang terdiri dari tiga router, yaitu PE1 (Surabaya), P1 (Madiun, transit), dan PE2 (Jakarta). Terdapat dua pelanggan: **Pelanggan A (Toko Retail)** memerlukan VPLS agar dua cabangnya terasa seperti terhubung ke satu switch yang sama (memerlukan Layer 2 yang sama, misalnya untuk POS dan CCTV yang menggunakan broadcast). **Pelanggan B (Kantor Akuntan)** memerlukan L3VPN agar dua cabangnya dapat melakukan routing antar-site tetapi terisolasi dari pelanggan lain. Backbone harus menggunakan OSPF sebagai IGP dan LDP untuk distribusi label.
+**Skenario:** ISP Nusantara Net memiliki backbone yang terdiri dari tiga router, yaitu PE1 (Surabaya), P1 (Madiun, transit), dan PE2 (Jakarta). Terdapat dua pelanggan: **Pelanggan A (Toko Retail)** memerlukan VPLS agar dua cabangnya terasa seperti terhubung ke satu switch yang sama (memerlukan Layer 2 yang sama, misalnya untuk POS dan CCTV yang menggunakan broadcast). **Pelanggan B (Kantor Akuntan)** memerlukan L3VPN agar dua cabangnya dapat melakukan routing antar-site tetapi terisolasi dari pelanggan lain. Backbone harus menggunakan Open Shortest Path First (OSPF) sebagai Interior Gateway Protocol (IGP) dan Label Distribution Protocol (LDP) untuk distribusi label.
 
-**Tantangan:** Tanpa MPLS, ISP harus membuat tunnel untuk setiap pelanggan yang rumit dan tidak skalabel. Dengan MPLS, satu backbone dapat melayani banyak pelanggan dengan isolasi VRF dan VPLS yang rapi.
+**Tantangan:** Tanpa MPLS, ISP harus membuat tunnel untuk setiap pelanggan yang rumit dan tidak skalabel. Dengan MPLS, satu backbone dapat melayani banyak pelanggan dengan isolasi Virtual Routing and Forwarding (VRF) dan Virtual Private LAN Service (VPLS) yang rapi.
 
 #### Topologi Modul 2
 
@@ -310,7 +319,7 @@ PE1 (10.0.0.1) — P1 (10.0.0.3) — PE2 (10.0.0.2). CE1 berada di belakang PE1 
 
 #### Tahap 1 — IGP OSPF dan MTU
 
-MPLS memerlukan IGP yang stabil. OSPF harus meng-advertise loopback. MTU pada seluruh interface backbone harus ditingkatkan sebelum MPLS diaktifkan karena label menambah 4 byte per label, dan VPLS / VPN dapat menambah lebih banyak. Apabila MTU terlalu kecil, paket yang berukuran besar akan mengalami fragmentasi atau terbuang (drop).
+MPLS memerlukan IGP yang stabil. OSPF wajib mengumumkan (advertise) loopback. MTU pada seluruh interface backbone wajib ditingkatkan sebelum MPLS diaktifkan karena label menambah 4 byte per label, dan VPLS / VPN dapat menambah lebih banyak. Apabila MTU terlalu kecil, paket yang berukuran besar akan mengalami fragmentasi atau terbuang (drop).
 
 ```routeros
 # Pada SELURUH router backbone (PE1, P1, PE2)
@@ -324,14 +333,14 @@ add name=ospf1 router-id=10.0.0.1
 add name=backbone instance=ospf1
 /routing ospf interface-template
 add interfaces=ether1,ether2 area=backbone
-# Pastikan loopback di-advertise melalui OSPF
+# Pastikan loopback diumumkan (advertised) melalui OSPF
 /routing ospf interface-template
 add interfaces=lo area=backbone
 ```
 
 #### Tahap 2 — MPLS dan LDP Dasar
 
-LDP akan membagikan label secara otomatis untuk setiap prefix pada tabel routing. Periksa apakah LDP neighbor telah terbentuk dan label telah terdistribusi.
+Label Distribution Protocol (LDP) akan membagikan label secara otomatis untuk setiap Forwarding Equivalence Class (FEC) pada tabel routing, sehingga terbentuk Label Switched Path (LSP). Perlu diperiksa apakah LDP neighbor telah terbentuk dan label telah terdistribusi.
 
 ```routeros
 # Di PE1, P1, PE2
@@ -350,10 +359,10 @@ add interface=ether2
 Untuk memahami label, buat static mapping pada laboratorium: label 100 untuk prefix 10.0.0.2/32. Hal tersebut membantu memahami bagaimana label ditempelkan dan dilepas. Pada jaringan produksi, LDP digunakan, bukan static, karena lebih skalabel.
 
 ```routeros
-# Contoh laboratorium saja, di PE1
+# Contoh ini hanya untuk laboratorium, pada PE1
 /mpls static-label
 add label=100 nexthop=10.10.13.2 out-label=200
-# Periksa: /mpls forwarding-table print
+# Pemeriksaan: /mpls forwarding-table print
 ```
 
 #### Tahap 4 — Penultimate Hop Popping (PHP) dan Traceroute
@@ -384,20 +393,20 @@ add name=bridge-VPLS-A
 add bridge=bridge-VPLS-A interface=vpls-A
 add bridge=bridge-VPLS-A interface=ether3 comment="to CE2"
 
-# Periksa: CE1 melakukan ping ke CE2 pada 192.168.100.0/24 harus berhasil
+# Pemeriksaan: CE1 melakukan ping ke CE2 pada 192.168.100.0/24 harus berhasil
 # /interface vpls print
 # /interface bridge host print where bridge=bridge-VPLS-A
 ```
 
-**Bridge Split Horizon:** Apabila terdapat lebih dari dua PE dalam satu VPLS (full-mesh), split-horizon diaktifkan pada bridge port VPLS agar tidak terjadi loop broadcast. Pada contoh dua PE, hal tersebut tidak wajib, tetapi wajib pada topologi hub-and-spoke atau full-mesh VPLS.
+**Bridge Split Horizon:** Apabila terdapat lebih dari dua PE dalam satu VPLS (full-mesh atau mesh penuh), split-horizon diaktifkan pada bridge port VPLS agar tidak terjadi loop broadcast. Pada contoh dua PE, hal tersebut tidak wajib, tetapi wajib pada topologi hub-and-spoke atau full-mesh VPLS.
 
 ```routeros
 /interface bridge port
 set [find interface=vpls-A] horizon=1
-# Seluruh port VPLS pada bridge yang sama harus memiliki horizon yang sama
+# Seluruh port VPLS pada bridge yang sama wajib memiliki horizon yang identik
 ```
 
-**VPLS Control Word (CW):** Diaktifkan apabila terdapat perangkat yang memerlukan deteksi mis-order atau apabila melewati jaringan yang melakukan ECMP berdasarkan payload. Pada RouterOS v7, CW diatur pada VPLS. Apabila salah satu sisi CW aktif dan sisi lain tidak aktif, VPLS dapat tidak aktif (down). Nilai CW harus disamakan pada kedua PE.
+**VPLS Control Word (CW) atau kata kontrol VPLS:** Diaktifkan apabila terdapat perangkat yang memerlukan deteksi mis-order atau apabila melewati jaringan yang melakukan ECMP berdasarkan payload. Pada RouterOS v7, CW diatur pada VPLS. Apabila salah satu sisi CW aktif dan sisi lain tidak aktif, VPLS dapat tidak aktif (down). Nilai CW harus disamakan pada kedua PE.
 
 ```routeros
 /interface vpls
@@ -406,7 +415,7 @@ set [find name=vpls-A] use-control-word=yes
 
 #### Tahap 6 — VPLS Berbasis BGP (Alternatif yang Skalabel)
 
-Untuk ISP besar dengan banyak PE, VPLS berbasis BGP lebih mudah karena auto-discovery melalui BGP, tanpa konfigurasi peer manual satu per satu. Prinsipnya, BGP meng-advertise VPLS instance, sedangkan LDP tetap digunakan untuk label transport.
+Untuk ISP besar dengan banyak PE, VPLS berbasis BGP lebih mudah karena auto-discovery melalui BGP, tanpa konfigurasi peer manual satu per satu. Prinsipnya, BGP mengumumkan (advertise) VPLS instance, sedangkan LDP tetap digunakan untuk label transport.
 
 ```routeros
 # Konsep BGP-VPLS di PE1 (v7)
@@ -420,7 +429,7 @@ add name=to-PE2 templates=bgp-mpls remote.address=10.0.0.2 remote.as=65000
 
 #### Tahap 7 — L3VPN: VRF, BGP VPNv4, dan Route Leaking
 
-L3VPN menggunakan VRF untuk memisahkan tabel routing pelanggan. PE1 dan PE2 saling mempertukarkan rute VPN melalui BGP address-family VPNv4 (MP-BGP). Route Target (RT) menentukan VRF mana yang diperkenankan mengimpor rute.
+L3VPN menggunakan VRF untuk memisahkan tabel routing pelanggan. PE1 dan PE2 saling mempertukarkan rute VPN melalui Multi-Protocol BGP (MP-BGP) address-family VPNv4. Route Distinguisher (RD) membedakan VRF antar pelanggan, sedangkan Route Target (RT) menentukan VRF mana yang diperkenankan mengimpor rute.
 
 ```routeros
 # --- Di PE1 dan PE2: Pembuatan VRF Pelanggan B ---
@@ -449,7 +458,7 @@ add dst-address=10.99.0.0/24 gateway=10.0.0.3 routing-mark=CUST-B
 
 #### Tahap 8 — OSPF sebagai Protokol CE-PE (Pelanggan B)
 
-Di sisi pelanggan, CE dan PE dapat berkomunikasi melalui OSPF agar rute LAN pelanggan secara otomatis masuk ke VPN. PE harus melakukan redistribusi OSPF ke BGP VPNv4 dan sebaliknya, dengan domain-id yang sama agar tampak sebagai satu area OSPF.
+Di sisi pelanggan, CE dan PE dapat berkomunikasi melalui OSPF agar rute LAN pelanggan secara otomatis masuk ke VPN. PE wajib melakukan redistribusi OSPF ke BGP VPNv4 dan sebaliknya, dengan domain-id yang sama agar tampak sebagai satu area OSPF.
 
 ```routeros
 # Di PE1 untuk VRF CUST-B
@@ -460,7 +469,7 @@ add name=area-CUST-B instance=ospf-CUST-B
 /routing ospf interface-template
 add interfaces=ether4 area=area-CUST-B
 # Di CE1, OSPF biasa menuju PE1, advertise LAN 172.16.10.0/24
-# Periksa: /ip route print where routing-mark=CUST-B
+# Pemeriksaan: /ip route print where routing-mark=CUST-B
 ```
 
 ### 2.3 Perbandingan RouterOS v6 dan v7 — MPLS
@@ -471,16 +480,16 @@ Contoh konfigurasi pada Tahap 1 hingga Tahap 8 menggunakan RouterOS v7. Pada sub
 
 | Aspek | RouterOS v6 | RouterOS v7 | Catatan |
 |---|---|---|---|
-| OSPF | `/routing ospf instance`, `/routing ospf network` | `/routing ospf instance`, `/routing ospf area`, `/routing ospf interface-template` | Pada v7, interface dinyatakan melalui `interface-template` |
-| MPLS LDP | `/mpls ldp`, `/mpls ldp interface` | `/mpls ldp`, `/mpls ldp interface` | Perintah relatif sama, perlu penyesuaian `lsr-id` dan `transport-address` |
+| OSPF | `/routing ospf instance`, `/routing ospf network` | `/routing ospf instance`, `/routing ospf area`, `/routing ospf interface-template` | Pada RouterOS v7, interface dinyatakan melalui `interface-template` |
+| MPLS LDP | `/mpls ldp`, `/mpls ldp interface` | `/mpls ldp`, `/mpls ldp interface` | Perintah hampir identik, perlu penyesuaian `lsr-id` dan `transport-address` |
 | Static Label | `/mpls static-label` | `/mpls static-label` | Hanya untuk laboratorium, tidak digunakan pada produksi |
-| VPLS | `/interface vpls` | `/interface vpls` | Parameter `vpls-id`, `peer`, dan `use-control-word` sama |
-| Bridge dan Split Horizon | `/interface bridge port` dengan `horizon` | `/interface bridge port` dengan `horizon` | Konsep split horizon sama pada kedua versi |
-| VRF | `/ip route vrf` | `/ip route vrf` | Pada v7, VRF tetap menggunakan `routing-mark` |
+| VPLS | `/interface vpls` | `/interface vpls` | Parameter `vpls-id`, `peer`, dan `use-control-word` identik |
+| Bridge dan Split Horizon | `/interface bridge port` dengan `horizon` | `/interface bridge port` dengan `horizon` | Konsep split horizon identik pada kedua versi |
+| VRF | `/ip route vrf` | `/ip route vrf` | Pada RouterOS v7, VRF tetap menggunakan `routing-mark` |
 | BGP VPNv4 | `/routing bgp peer` dengan address family VPNv4 | `/routing bgp template` dengan `address-families=vpnv4` | Perbedaan utama pada struktur template dan connection |
-| BGP VPLS (L2VPN) | `/routing bgp peer` dengan L2VPN | `/routing bgp template` dengan `address-families=l2vpn` | Pada v7, L2VPN dinyatakan secara eksplisit |
+| BGP VPLS (L2VPN) | `/routing bgp peer` dengan L2VPN | `/routing bgp template` dengan `address-families=l2vpn` | Pada RouterOS v7, L2VPN dinyatakan secara eksplisit |
 | MTU | `/interface ethernet` dengan `l2mtu` dan `mtu` | `/interface ethernet` dengan `l2mtu` dan `mtu` | Nilai 1600 disarankan pada kedua versi untuk VPLS |
-| Pemeriksaan MPLS | `/mpls forwarding-table print`, `/mpls ldp neighbor print` | `/mpls forwarding-table print`, `/mpls ldp neighbor print` | Perintah pemeriksaan sama |
+| Pemeriksaan MPLS | `/mpls forwarding-table print`, `/mpls ldp neighbor print` | `/mpls forwarding-table print`, `/mpls ldp neighbor print` | Perintah pemeriksaan identik |
 
 #### Konfigurasi RouterOS v6 — Setara dengan Tahap 1, 2, 5, dan 7
 
@@ -570,9 +579,9 @@ add name=to-PE2-vpn templates=bgp-vpn remote.address=10.0.0.2 remote.as=65000
 
 #### Panduan Pemilihan Versi
 
-- Perbedaan yang paling signifikan terdapat pada OSPF dan BGP. VPLS, LDP, VRF, dan MTU relatif sama.
+- Perbedaan yang paling signifikan terdapat pada OSPF dan BGP. VPLS, LDP, VRF, dan MTU hampir identik.
 - Apabila migrasi dari v6 ke v7 dilakukan, OSPF dan BGP harus ditulis ulang. VPLS dan VRF dapat dipertahankan dengan penyesuaian kecil.
-- Nilai `vpls-id`, RD, RT, dan `routing-mark` harus sama pada kedua versi agar pelanggan tidak terputus pada saat migrasi.
+- Nilai `vpls-id`, RD, RT, dan `routing-mark` harus identik pada kedua versi agar pelanggan tidak terputus pada saat migrasi.
 
 ### 2.4 Verifikasi MPLS
 
@@ -588,9 +597,9 @@ add name=to-PE2-vpn templates=bgp-vpn remote.address=10.0.0.2 remote.as=65000
 /tool traceroute 10.0.0.2
 ```
 
-- **VPLS tidak aktif?** Periksa LDP neighbor, periksa kesamaan vpls-id, periksa MTU, periksa kesamaan CW, dan periksa bridge port.
-- **L3VPN tidak memiliki rute?** Periksa kesamaan RD/RT, periksa BGP VPNv4 Established, dan periksa routing-mark VRF pada interface.
-- **Paket berukuran besar terbuang?** Periksa L2MTU pada seluruh tautan, minimal 1600 untuk VPLS dan label MPLS.
+- **VPLS tidak aktif?** Perlu diperiksa LDP neighbor, kesamaan vpls-id, MTU, kesamaan CW, dan bridge port.
+- **L3VPN tidak memiliki rute?** Perlu diperiksa kesamaan RD/RT, status BGP VPNv4 Established (terbentuk), dan routing-mark VRF pada interface.
+- **Paket berukuran besar terbuang?** Perlu diperiksa L2MTU pada seluruh tautan, minimal 1600 untuk VPLS dan label MPLS.
 
 ### 2.5 Operasi MPLS — Prosedur Operasional
 
@@ -603,7 +612,7 @@ add name=to-PE2-vpn templates=bgp-vpn remote.address=10.0.0.2 remote.as=65000
 
 Traffic Engineering (TE) menjawab permasalahan klasik: tautan utama penuh, sedangkan tautan cadangan kosong. Tanpa TE, routing selalu memilih jalur terpendek sehingga tautan utama mengalami overload. Dengan TE, sebagian trafik dapat dipaksa melewati jalur lain yang lebih lengang.
 
-### 3.1 Studi Kasus — Congestion Tautan Surabaya—Jakarta
+### 3.1 Studi Kasus — Kongesti (Congestion) Tautan Surabaya—Jakarta
 
 **Skenario:** ISP memiliki dua jalur Surabaya (PE1) menuju Jakarta (PE2): **Jalur Utama** PE1—P1—PE2 melalui Madiun dengan kapasitas 20 Mbps yang telah terpakai 95% pada jam sibuk karena trafik video. **Jalur Alternatif** PE1—P2—PE2 melalui Malang dengan kapasitas 50 Mbps yang baru terpakai 20%. Tanpa TE, seluruh trafik tetap melewati jalur utama karena jalur tersebut lebih pendek. Tujuan yang hendak dicapai adalah memindahkan trafik video (misalnya 10 Mbps) ke jalur alternatif dan menyisakan jalur utama untuk trafik prioritas. Jalur TE harus melakukan reservasi bandwidth agar tidak berebut dengan trafik lain.
 
@@ -615,7 +624,7 @@ PE1 (10.0.0.1) — P1 (10.0.0.3) — PE2 (10.0.0.2) merupakan jalur utama (cost 
 
 | Tautan | Kapasitas | Utilisasi Awal |
 |---|---|---|
-| PE1 — P1 — PE2 (Utama) | 20 Mbps | 95% (congestion) |
+| PE1 — P1 — PE2 (Utama) | 20 Mbps | 95% (kongesti / congestion) |
 | PE1 — P2 — PE2 (Alternatif) | 50 Mbps | 20% (lengang) |
 | TE Tunnel PE1 ke PE2 | Reservasi 10 Mbps | Untuk trafik video |
 
@@ -623,10 +632,10 @@ PE1 (10.0.0.1) — P1 (10.0.0.3) — PE2 (10.0.0.2) merupakan jalur utama (cost 
 
 #### Tahap 1 — Memastikan MPLS, OSPF, dan LDP Berjalan
 
-TE tidak berdiri sendiri. TE memerlukan OSPF dengan TE extensions dan MPLS. Pastikan Modul 2 telah berjalan sebelum melanjutkan.
+Traffic Engineering (TE) tidak dapat berdiri sendiri. TE memerlukan OSPF dengan TE Extensions (ekstensi Traffic Engineering) dan MPLS. Perlu dipastikan bahwa Modul 2 telah berjalan sebelum melanjutkan.
 
 ```routeros
-# Pada seluruh router backbone, pastikan OSPF telah meng-advertise
+# Pada seluruh router backbone, pastikan OSPF telah mengumumkan (advertise)
 # TE extensions dan MPLS telah aktif
 /routing ospf instance
 set [find name=ospf1] mpls-te=yes
@@ -635,7 +644,7 @@ add interface=ether1 bandwidth=20M
 add interface=ether2 bandwidth=50M
 ```
 
-#### Tahap 2 — RSVP-TE
+#### Tahap 2 — Resource Reservation Protocol with Traffic Engineering (RSVP-TE)
 
 RSVP (Resource Reservation Protocol) digunakan untuk reservasi bandwidth di sepanjang jalur TE. Tanpa RSVP, router tidak mengetahui berapa bandwidth yang telah terpakai pada setiap tautan.
 
@@ -643,12 +652,12 @@ RSVP (Resource Reservation Protocol) digunakan untuk reservasi bandwidth di sepa
 # Mengaktifkan RSVP-TE pada seluruh router backbone
 /mpls traffic-eng rsvp
 set enabled=yes
-# Periksa: /mpls traffic-eng rsvp session print
+# Pemeriksaan: /mpls traffic-eng rsvp session print
 ```
 
-#### Tahap 3 — TE Tunnel: Static Path dan Dynamic Path (CSPF)
+#### Tahap 3 — TE Tunnel: Static Path dan Dynamic Path (Constrained Shortest Path First / CSPF)
 
-**Dynamic Path (CSPF):** Router menghitung sendiri jalur terbaik yang memenuhi constraint bandwidth dengan menggunakan database OSPF-TE. Metode ini sesuai apabila topologi sering berubah. **Static Path / Explicit Path:** Pengelola jaringan menentukan secara manual router mana saja yang harus dilalui oleh tunnel. Metode ini sesuai untuk studi kasus ini karena jalur dipaksa melalui P2.
+**Dynamic Path (CSPF):** Router menghitung secara mandiri best path (jalur terbaik) yang memenuhi constraint (batasan) bandwidth dengan menggunakan database OSPF-TE. Metode ini sesuai apabila topologi sering berubah. **Static Path / Explicit Path:** Pengelola jaringan menentukan secara manual router mana hanya yang harus dilalui oleh tunnel. Metode ini sesuai untuk studi kasus ini karena jalur dipaksa melalui P2.
 
 ```routeros
 # --- Pembuatan Explicit Path melalui P2 (10.0.0.4) ---
@@ -690,16 +699,16 @@ add dst-address=0.0.0.0/0 gateway=te-PE1-to-PE2 \
 # /mpls traffic-eng tunnel set [find name=te-PE1-to-PE2] auto-bandwidth=yes
 ```
 
-#### Tahap 5 — Steering Traffic dan Verifikasi
+#### Tahap 5 — Steering (Pengarahan Trafik) dan Verifikasi
 
-TE tunnel yang telah aktif belum tentu digunakan. Pengelola jaringan harus melakukan steering trafik ke tunnel, dapat melalui static route, policy routing, atau BGP next-hop. Pada laboratorium, static route dengan routing-mark sebagaimana contoh di atas digunakan, kemudian diuji.
+TE tunnel yang telah aktif belum tentu digunakan. Pengelola jaringan wajib melakukan steering (pengarahan trafik) ke tunnel, dapat melalui static route, policy routing, atau BGP next-hop. Pada laboratorium, static route dengan routing-mark sebagaimana contoh di atas digunakan, kemudian diuji.
 
 ```routeros
 # Verifikasi TE
 /mpls traffic-eng tunnel print
 /mpls traffic-eng tunnel path print
 /mpls traffic-eng rsvp session print
-# Pemeriksaan bandwidth yang ter-reservasi pada tautan
+# Pemeriksaan bandwidth yang yang telah dipesan (reserved) pada tautan
 /mpls traffic-eng interface print detail
 # Dari PE1, traceroute harus melalui P2 (10.0.0.4)
 /tool traceroute 10.0.0.2 src-address=10.0.0.1
@@ -715,12 +724,12 @@ Contoh konfigurasi pada Tahap 1 hingga Tahap 5 menggunakan RouterOS v7. Pada sub
 |---|---|---|---|
 | OSPF-TE | `/routing ospf instance` dengan `mpls-te` | `/routing ospf instance` dengan `mpls-te=yes` | Pada kedua versi, OSPF-TE harus diaktifkan agar CSPF berfungsi |
 | Interface TE | `/mpls traffic-eng interface` | `/mpls traffic-eng interface` | Parameter `bandwidth` dinyatakan pada kedua versi |
-| RSVP-TE | `/mpls traffic-eng rsvp` | `/mpls traffic-eng rsvp` | Perintah pengaktifan relatif sama |
-| TE Path | `/mpls traffic-eng path` | `/mpls traffic-eng path` | Explicit path dan `strict` sama pada kedua versi |
-| TE Tunnel | `/mpls traffic-eng tunnel` | `/mpls traffic-eng tunnel` | Parameter `bandwidth`, `primary-path`, dan `to-address` sama |
+| RSVP-TE | `/mpls traffic-eng rsvp` | `/mpls traffic-eng rsvp` | Perintah pengaktifan hampir identik |
+| TE Path | `/mpls traffic-eng path` | `/mpls traffic-eng path` | Explicit path dan `strict` identik pada kedua versi |
+| TE Tunnel | `/mpls traffic-eng tunnel` | `/mpls traffic-eng tunnel` | Parameter `bandwidth`, `primary-path`, dan `to-address` identik |
 | CSPF | `use-cspf=yes` pada path / tunnel | `use-cspf=yes` pada path / tunnel | CSPF menggunakan database OSPF-TE |
-| Steering | Static route, policy routing, mangle | Static route, policy routing, mangle | Mekanisme steering sama, hanya menu routing yang berbeda pada v7 |
-| Pemeriksaan TE | `/mpls traffic-eng tunnel print`, `/mpls traffic-eng rsvp session print` | `/mpls traffic-eng tunnel print`, `/mpls traffic-eng rsvp session print` | Perintah pemeriksaan sama |
+| Steering | Static route, policy routing, mangle | Static route, policy routing, mangle | Mekanisme steering identik, hanya menu routing yang berbeda pada v7 |
+| Pemeriksaan TE | `/mpls traffic-eng tunnel print`, `/mpls traffic-eng rsvp session print` | `/mpls traffic-eng tunnel print`, `/mpls traffic-eng rsvp session print` | Perintah pemeriksaan identik |
 | Bandwidth Allocation | Reservasi pada TE Tunnel | Reservasi pada TE Tunnel | Tidak membatasi trafik secara otomatis pada kedua versi |
 | Bandwidth Limitation | Queue / policer pada interface | Queue / policer pada interface | Diperlukan untuk batas keras trafik |
 
@@ -803,7 +812,7 @@ add dst-address=0.0.0.0/0 gateway=te-PE1-to-PE2 routing-mark=via-TE
 - **Pemantauan:** Status tunnel diperiksa setiap hari. Tunnel TE dapat terputus apabila RSVP gagal melakukan reservasi karena bandwidth tautan telah habis. Peringatan dikirimkan apabila tunnel terputus lebih dari 1 menit.
 - **Perencanaan Kapasitas:** Total bandwidth TE yang direservasi tidak melebihi 80% kapasitas tautan fisik. Sisa kapasitas disediakan untuk trafik best-effort dan failover.
 - **Failover:** Secondary path disiapkan. Apabila primary path melalui P2 terputus, tunnel harus dapat berpindah ke jalur lain atau kembali ke IGP. Failover diuji pada jendela pemeliharaan dengan menonaktifkan tautan P2.
-- **Dokumentasi:** Setiap tunnel harus memiliki nama yang jelas (dari mana menuju ke mana, untuk trafik apa, dan berapa bandwidth). Tanpa dokumentasi, TE akan menjadi spaghetti tunnel yang tidak ada yang berani menghapus.
+- **Dokumentasi:** Setiap tunnel wajib memiliki nama yang jelas (dari mana menuju ke mana, untuk trafik apa, dan berapa bandwidth). Tanpa dokumentasi, TE akan menjadi tunnel yang tidak terdokumentasi dan tidak terstruktur yang tidak ada yang berani menghapus.
 
 #### Penanganan Masalah TE
 
@@ -812,7 +821,8 @@ add dst-address=0.0.0.0/0 gateway=te-PE1-to-PE2 routing-mark=via-TE
 | Tunnel Down / No Path | Bandwidth tidak mencukupi / CSPF tidak menemukan jalur | Kurangi bandwidth, periksa OSPF-TE DB, periksa explicit path |
 | Tunnel Up tetapi trafik tidak melewati | Steering belum diatur | Periksa routing-mark / static route menuju tunnel |
 | RSVP session gagal | RSVP tidak aktif pada salah satu hop | Aktifkan RSVP pada seluruh router pada jalur |
-| Utilisasi tidak berubah | Trafik yang di-steer tidak sesuai / mangle tidak sesuai | Periksa mangle counter, periksa /ip firewall mangle print stats |
+| Utilisasi tidak berubah | Trafik yang diarahkan (steered) tidak sesuai / mangle (penandaan paket) tidak sesuai | Periksa mangle (penandaan paket) counter, periksa /ip firewall mangle print stats |
+
 
 ## 4. Lampiran A - Matriks Penanganan Masalah dan Perintah Cepat
 
@@ -820,7 +830,7 @@ add dst-address=0.0.0.0/0 gateway=te-PE1-to-PE2 routing-mark=via-TE
 |---|---|---|
 | BGP | `/routing bgp peer print status` | Established, prefix count |
 | BGP Route | `/routing bgp route print` | Active, Local-Pref, AS Path |
-| OSPF | `/routing ospf neighbor print` | Full, Router-ID |
+| OSPF | `/routing ospf neighbor print` | Full (terbentuk penuh), Router-ID |
 | LDP | `/mpls ldp neighbor print` | Established |
 | MPLS Forwarding | `/mpls forwarding-table print` | Label tersedia untuk loopback PE |
 | VPLS | `/interface vpls print` | Running, peer reachable |
@@ -829,11 +839,11 @@ add dst-address=0.0.0.0/0 gateway=te-PE1-to-PE2 routing-mark=via-TE
 | RSVP | `/mpls traffic-eng rsvp session print` | Session Up |
 | Interface | `/interface print where running` | MTU, error, drop |
 
-**Prinsip penanganan masalah:** Pemeriksaan selalu dilakukan dari bawah ke atas — Fisik (tautan aktif?) — IGP (OSPF Full?) — LDP (neighbor?) — BGP / VPN (session?) — Layanan (VPLS / TE aktif?) — Trafik (mangle / route?). Pemeriksaan tidak dilakukan dengan melompat langsung ke BGP apabila OSPF belum Full.
+**Prinsip penanganan masalah:** Pemeriksaan selalu dilakukan dari bawah ke atas — Fisik (tautan aktif?) — IGP (OSPF Full (terbentuk penuh)?) — LDP (neighbor?) — BGP / VPN (session?) — Layanan (VPLS / TE aktif?) — Trafik (mangle / route?). Pemeriksaan tidak dilakukan dengan melompat langsung ke BGP apabila OSPF belum Full.
 
-## 5. Lampiran B - Templat Pencadangan, Rollback, dan Permintaan Perubahan
+## 5. Lampiran B - Templat Pencadangan (Backup), Rollback (Pengembalian), dan Permintaan Perubahan
 
-### Pencadangan Sebelum Perubahan
+### Backup Sebelum Ubah Konfigurasi
 
 ```routeros
 # Pada setiap router, sebelum jendela pemeliharaan
@@ -842,7 +852,7 @@ add dst-address=0.0.0.0/0 gateway=te-PE1-to-PE2 routing-mark=via-TE
 # Berkas cadangan diunduh ke server, tidak hanya disimpan pada router
 ```
 
-### Rollback Cepat
+### Rollback
 
 ```routeros
 # Apabila perubahan filter BGP bermasalah, filter lama dikembalikan
@@ -850,13 +860,3 @@ add dst-address=0.0.0.0/0 gateway=te-PE1-to-PE2 routing-mark=via-TE
 # Kemudian impor ekspor lama atau tempel konfigurasi cadangan
 /import file=backup-YYYYMMDD-HHMM.rsc
 ```
-
-### Templat Permintaan Perubahan (Diisi pada Tiket)
-
-- **Tujuan:** Misalnya: Memindahkan trafik video ke TE tunnel melalui P2.
-- **Perangkat:** PE1, P2, PE2.
-- **Waktu:** Jendela pemeliharaan, misalnya Sabtu 01.00—03.00 WIB.
-- **Langkah:** 1) Pencadangan, 2) Pembuatan explicit path, 3) Pembuatan tunnel, 4) Steering 10% trafik terlebih dahulu, 5) Verifikasi 15 menit, 6) Peningkatan menjadi 100% apabila stabil.
-- **Verifikasi:** Tunnel Up, traceroute melalui P2, utilisasi tautan utama menurun.
-- **Rollback:** Route steering dihapus, tunnel tetap tersedia tetapi tidak digunakan. Apabila diperlukan, tunnel dihapus.
-- **Risiko:** Apabila RSVP gagal, trafik kembali ke jalur utama, tidak terjadi downtime total.
