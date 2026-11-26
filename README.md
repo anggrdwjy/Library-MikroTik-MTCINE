@@ -2,9 +2,9 @@
 
 ## Daftar Isi
 
-- [Modul 1. BGP](#modul-1---bgp)
-- [Modul 2. MPLS](#modul-2---mpls)
-- [Modul 3. Traffic Engineering](#modul-3---traffic-engineering)
+- [Modul 1. BGP](#modul-1-bgp)
+- [Modul 2. MPLS](#modul-2-mpls)
+- [Modul 3. Traffic Engineering](#modul-3-traffic-engineering)
 
 
 ## Modul 1. BGP
