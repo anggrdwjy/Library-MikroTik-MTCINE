@@ -2,12 +2,12 @@
 
 ## Daftar Isi
 
-- [Modul 1 - BGP](#1-modul-1---bgp)
-- [Modul 2 - MPLS](#2-modul-2---mpls)
-- [Modul 3 - Traffic Engineering](#3-modul-3---traffic-engineering)
+- [Modul 1 - BGP](#modul-1---bgp)
+- [Modul 2 - MPLS](#modul-2---mpls)
+- [Modul 3 - Traffic Engineering](#modul-3---traffic-engineering)
 
 
-## 1. Modul 1 - BGP
+## Modul 1 - BGP
 
 Border Gateway Protocol (BGP) merupakan protokol yang menghubungkan Autonomous System (AS). Pada modul ini, pembahasan tidak hanya mencakup cara kerja BGP, tetapi juga cara mengendalikannya agar jaringan tetap stabil, aman, dan tidak menjadi transit yang tidak dikehendaki.
 
@@ -285,7 +285,7 @@ add name=to-R1 templates=bgp-65001 remote.address=10.0.0.1 remote.as=65001 \
 | Trafik hanya melalui satu ISP | Local-Pref / prepend tidak sesuai | Periksa filter, periksa bgp-local-pref pada route print |
 | Loop / transit tidak disengaja | Filter outbound terlalu longgar | Perketat filter, hanya prefix milik perusahaan |
 
-## 2. Modul 2 - MPLS
+## Modul 2 - MPLS
 
 Multiprotocol Label Switching (MPLS) membuat forwarding menjadi lebih cepat dan memungkinkan VPN yang terisolasi pada infrastruktur yang sama. Pada modul ini, pembahasan dimulai dari dasar label hingga pembangunan Virtual Private LAN Service (VPLS) atau VPN Layer 2 dan L3VPN atau VPN Layer 3 sebagaimana yang digunakan oleh ISP.
 
@@ -606,7 +606,7 @@ add name=to-PE2-vpn templates=bgp-vpn remote.address=10.0.0.2 remote.as=65000
 - **Audit MTU:** Setiap penambahan tautan baru, MTU dipastikan telah 1600. Satu tautan dengan MTU yang kecil dapat merusak seluruh VPLS.
 - **Pencadangan:** Konfigurasi MPLS dan VRF diekspor. VPLS dan VRF sangat sensitif terhadap kesalahan penulisan ID.
 
-## 3. Modul 3 - Traffic Engineering
+## Modul 3 - Traffic Engineering
 
 Traffic Engineering (TE) menjawab permasalahan klasik: tautan utama penuh, sedangkan tautan cadangan kosong. Tanpa TE, routing selalu memilih jalur terpendek sehingga tautan utama mengalami overload. Dengan TE, sebagian trafik dapat dipaksa melewati jalur lain yang lebih lengang.
 
